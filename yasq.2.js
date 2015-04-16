@@ -662,13 +662,6 @@
 						fields:listFields
 					};
 
-					if(options.cacheTo){
-						if(localStorage){
-							localStorage.setItem(options.cacheTo,JSON.stringify(listSchema));
-							localStorage.setItem(options.cacheTo+'.date',options.cacheUntil);
-						}
-					}
-
 					options.success(listSchema);
 				},
 				contentType: "text/xml; charset=\"utf-8\"",
