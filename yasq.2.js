@@ -2,7 +2,7 @@
 
 // Internal methods
     // Generic error handler - can be overridden in config
-    var _error = function(){
+    var _error = function(errorMsg){
 		if(window.console){
 			if(console.error){
 				console.error('YASQ Error: '+errorMsg);
@@ -61,11 +61,11 @@
 // Public methods
     var methods = {
         init: function(options){
-            defaultOptions = $.extend(defaultOptions,options);
+            $.extend(defaultOptions,options);
         },
 // List item methods
         getListItems: function(options){
-            options = $.extend(defaultOptions,options);
+            options = $.extend({},defaultOptions,options);
 
             var mandatoryFields = ['site','list','success'];
 
@@ -140,7 +140,7 @@
             });
         },
         modListItems: function(options){
-			options = $.extend(defaultOptions,options);
+			options = $.extend({},defaultOptions,options);
 
             var mandatoryFields = [
                 'site',
@@ -225,32 +225,32 @@
 					$(xData.responseText).find('Result').each(function(i,rowData){
 						var errorCode = $(this).find('ErrorCode').text();
 						if(errorCode == '0x00000000'){
-							results[i] = {status: 'success'};
+							results[i] = {success: true};
 
-							$(this).find("z\\:row").each(function(){// <- should only be one, actually
-								$.each(this.attributes,function(j,attribute){
+							$(this).find("z\\:row").each(function(i,row){// <- should only be one, actually
+								$.each(row.attributes,function(j,attribute){
 									results[i][attribute.name.substr(4).replace(/(_x0020_)/g,'')] = attribute.value;
 								});
 							});
-						}else{
+						}
+						else{
+							var $rowData = $(rowData);
+
 							results[i] = {
-								status: 'error',
-								error: $(this).find('ErrorText').text(),
+								id: $rowData.attr('id').split(',')[0],
+								success: false,
+								error: $rowData.find('ErrorText').text(),
 								errorCode: errorCode
 							};
 						}
 					});
-
-                    if(results.length == 0){
-                    	results = false;
-                    }
 
 					options.success(results);
 				}
 			});
         },
 		addListItems: function(options){
-		    options = $.extend(defaultOptions,options);
+		    options = $.extend({},defaultOptions,options);
 
             var mandatoryFields = [
                 'site',
@@ -275,7 +275,7 @@
 			$.yasq('modListItems',options);
 		},
 		delListItems: function(options){
-		    options = $.extend(defaultOptions,options);
+		    options = $.extend({},defaultOptions,options);
 
             var mandatoryFields = [
                 'site',
@@ -290,7 +290,10 @@
 			var delCommands = [];
 			if(options.items.constructor == Array){
 				for(var i=0;options.items[i];i++){
-					delCommands[i] = {id:options.items[i],cmdDelete:true};
+					delCommands[i] = {
+						id:options.items[i],
+						cmdDelete:true
+					};
 				}
 			}
 			else{
@@ -305,7 +308,7 @@
 
 // Manage approval status of items
 		moderateListItems: function(options){
-		    options = $.extend(defaultOptions,options);
+		    options = $.extend({},defaultOptions,options);
 
             var mandatoryFields = [
                 'site',
@@ -356,7 +359,7 @@
 
 // Support queries
 		getCurrentUserData: function(options){
-			options = $.extend(defaultOptions,options);
+			options = $.extend({},defaultOptions,options);
 
 			//force an update
 			var urlString = options.site+'_layouts/userdisp.aspx?Force=True&'+new Date().getTime();
@@ -399,7 +402,7 @@
 
 // Search -- not finished
 		search:function(options){
-		    var extraOptions = $.extend(defaultOptions,{
+		    options = $.extend({},defaultOptions,{
                 query:false,//String if text queryType, or mssqlft statement
                 //end mandatory fields
                 queryType:'text',//or 'sql'
@@ -407,9 +410,7 @@
                 scope:'All Content',//only used with text queryType
                 startAt:1,
                 resultCount:9
-		    });
-
-			options = $.extend(extraOptions,options);
+		    },options);
 
 			var mandatoryOptions = ['site','success'];
 
@@ -536,11 +537,9 @@
 
 // Get the schema for a list -- not finished
 		getListSchema:function(options){
-            var extraOptions = $.extend(defaultOptions,{
+            options = $.extend({},defaultOptions,{
 				view:false,
-            });
-
-            options = $.extend(extraOptions,options);
+            },options);
 
             var mandatoryFields = ['site','list','success'];
 
