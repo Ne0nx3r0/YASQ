@@ -21,7 +21,7 @@
             var field = fields[i];
 
             if(!o[field]){
-                error(field + ' is mandatory');
+                error(field+' is a mandatory field and was not found');
 
                 return false;
             }
