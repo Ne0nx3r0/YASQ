@@ -3,14 +3,18 @@
 // Internal methods
     // Generic error handler - can be overridden in config
     var _error = function(){
-            if(window.console)
-                if(console.error)
-                    console.error('YASQ Error: '+errorMsg);
-                else
-                    console.log('YASQ error: '+errorMsg);
-            else
-                alert('YASQ error: '+errorMsg);//Need to up your browser game bro
-    }
+		if(window.console){
+			if(console.error){
+				console.error('YASQ Error: '+errorMsg);
+			}
+			else{
+				console.log('YASQ error: '+errorMsg);
+			}
+		}
+		else{
+			alert('YASQ error: '+errorMsg);//Need to up your browser game bro
+		}
+	}
 
     var _hasMandatoryFields = function(o,fields,error){
         for(var i=0;i<fields.length;i++){
@@ -106,26 +110,30 @@
                 type: "POST",
                 dataType: "xml",
                 data: soapXML,
-                contentType: 'text/xml; charset="utf-8"',
+				contentType: "text/xml; charset=\"utf-8\"",
                 beforeSend:function(xhr){
                     xhr.setRequestHeader("SOAPAction","http://schemas.microsoft.com/sharepoint/soap/GetListItems");
                 },
                 complete: function(xData, status){
-                    if(_hasSoapError(xData.responseXML,options.error)){
+                    if(_hasSoapError(xData.responseText,options.error)){
                         return;
                     }
 
                     var results = [];
 
-                    $(xData.responseXML).find("z\\:row").each(function(){
+                    $(xData.responseText).find("z\\:row").each(function(i,row){
                         var tempResults = {};
 
-                        $.each(this.attributes,function(i,attribute){
+                        $.each(row.attributes,function(i,attribute){
                             tempResults[attribute.name.substr(4).replace(/(_x0020_)/g,'')] = attribute.value;
                         });
 
                         results.push(tempResults);
                     });
+
+                    if(results.length == 0){
+                    	results = false;
+                    }
 
                     options.success(results);
                 }
@@ -207,14 +215,14 @@
 				contentType: "text/xml; charset=\"utf-8\"",
 				beforeSend:function(xhr){
 				    xhr.setRequestHeader("SOAPAction","http://schemas.microsoft.com/sharepoint/soap/UpdateListItems");
-				}
+				},
 				complete: function(xData, status){
-                    if(_hasSoapError(xData.responseXML,options.error)){
+                    if(_hasSoapError(xData.responseText,options.error)){
                         return;
                     }
 
 					var results = [];
-					$(xData.responseXML).find('Result').each(function(i,rowData){
+					$(xData.responseText).find('Result').each(function(i,rowData){
 						var errorCode = $(this).find('ErrorCode').text();
 						if(errorCode == '0x00000000'){
 							results[i] = {status: 'success'};
@@ -232,6 +240,10 @@
 							};
 						}
 					});
+
+                    if(results.length == 0){
+                    	results = false;
+                    }
 
 					options.success(results);
 				}
@@ -477,14 +489,14 @@
 				dataType: "xml",
 				data: soapXML,
 				complete: function(xData, status){
-                    if(_hasSoapError(xData.responseXML,options.error)){
+                    if(_hasSoapError(xData.responseText,options.error)){
                         return;
                     }
 
 					var results = [];
 
 					if(options.queryType == 'text'){
-						$(xData.responseXML).find("QueryResult").each(function(){
+						$(xData.responseText).find("QueryResult").each(function(){
 							var tempXML = $("<xml>" + $(this).text() + "</xml>");
 							tempXML.find("Document").each(function(i,d){
 								results[i] = {
@@ -497,7 +509,7 @@
 							});
 						});
 					}else{//sql
-						$(xData.responseXML).find('QueryResult').each(function(){
+						$(xData.responseText).find('QueryResult').each(function(){
 							var tempXML = $('<xml>'+$(this).text()+'</xml>');
 							tempXML.find('Document').each(function(i,d){
 								results[i] = {};
@@ -553,12 +565,12 @@
 				dataType: "xml",
 				data: soapXML,
 				complete: function(xData, status){
-                    if(_hasSoapError(xData.responseXML,options.error)){
+                    if(_hasSoapError(xData.responseText,options.error)){
                         return;
                     }
 
 					var listFields = {};
-					$(xData.responseXML).find('Fields > Field').each(function(i,e){
+					$(xData.responseText).find('Fields > Field').each(function(i,e){
 						var newField = {};
 
 						if(($(e).attr('Hidden') == 'TRUE' && $(e).attr('Type') != 'ModStat') || $(e).attr('Type') == 'Computed'){
@@ -655,11 +667,11 @@
 
 					//Package the info
 					var listSchema = {
-						site:options.site,
-						list:options.list,
-						listGuid:$(xData.responseXML).find('List').attr('ID'),
-						listUrl:$(xData.responseXML).find('List').attr('DefaultViewUrl'),
-						fields:listFields
+						site: options.site,
+						list: options.list,
+						listGuid: $(xData.responseText).find('List').attr('ID'),
+						listUrl: $(xData.responseText).find('List').attr('DefaultViewUrl'),
+						fields: listFields
 					};
 
 					options.success(listSchema);
@@ -689,14 +701,14 @@
 
 		//creates a date object from a sharepoint date/time string
 		getJSDate: function(sds){
-			return new Date(
+			return new Date(Date.UTC(
 				sds.substr(0,4),//yyyy
 				sds.substr(5,2)-1,//mm
 				sds.substr(8,2),//dd
 				sds.substr(11,2),//hh
 				sds.substr(14,2),//mm
 				sds.substr(17,2)//ss
-			);
+			));
 		},
 
 		// Basic escaping for html-enabled fields
@@ -749,9 +761,11 @@
 	$.yasq = function(method){
 		if (methods[method]){
 			return methods[ method ].apply(this,Array.prototype.slice.call(arguments,1));
-		}else if( typeof method === 'object' || ! method ) {
+		}
+		else if( typeof method === 'object' || ! method ) {
 			return methods.init.apply(this,arguments);
-		} else {
+		}
+		else {
 			$.error( 'Invalid YASQ method: ' +  method);
 		}
 	};
